@@ -1,5 +1,5 @@
-require './dnode/conn.rb'
 require 'rev'
+require 'dnode/conn'
 
 class DNode
     def initialize obj={}

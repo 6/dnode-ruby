@@ -8,15 +8,20 @@ class Conn < Rev::TCPSocket
     
     def initialize params
         @block = params[:block] || lambda {}
+        @instance = params[:instance] || {}
         @scrub = Scrub.new
+        @remote = {}
         
         buf = ''
         this = self
         
-        conn = params[:conn]
-        conn.on_connect {}
-        conn.on_close {}
-        conn.on_read do |data|
+        @conn = params[:conn]
+        @conn.on_connect {
+            this.emit('connect')
+            this.request('methods', [@instance])
+        }
+        @conn.on_close {}
+        @conn.on_read do |data|
             # hopefully line-buffered already, but anyways
             buf += data
             while buf.match(/\n/)
@@ -36,9 +41,15 @@ class Conn < Rev::TCPSocket
         }
         
         if req['method'].is_a? Integer then
-            
-        else
-            
+            id = req['method']
+            @scrub.callbacks[id].call(*args)
+        elsif req['method'] == 'methods' then
+            @remote.update(args[0])
+            @block.call(*[ @remote, self ][ 0 .. @block.arity - 1 ])
         end
+    end
+    
+    def request method, *args
+        puts "method=#{method.inspect}; args=#{args.inspect}"
     end
 end
