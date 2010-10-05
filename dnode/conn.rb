@@ -11,6 +11,7 @@ class Conn < Rev::TCPSocket
         @instance = params[:instance] || {}
         @scrub = Scrub.new
         @remote = {}
+        @sock = nil
         
         buf = ''
         this = self
@@ -18,7 +19,19 @@ class Conn < Rev::TCPSocket
         @conn = params[:conn]
         @conn.on_connect {
             this.emit('connect')
-            this.request('methods', [@instance])
+            conn = self
+            
+            (class << this; self; end).send(:define_method, 'write') do |msg|
+                puts "msg=#{msg}"
+                conn.write(msg)
+            end
+            
+            this.request('methods', [
+                if @instance.is_a? Proc
+                    then @instance.call(*[@remote,this][0..@instance.arity-1])
+                    else @instance
+                end
+            ])
         }
         @conn.on_close {}
         @conn.on_read do |data|
@@ -46,10 +59,18 @@ class Conn < Rev::TCPSocket
         elsif req['method'] == 'methods' then
             @remote.update(args[0])
             @block.call(*[ @remote, self ][ 0 .. @block.arity - 1 ])
+            self.emit('remote', @remote)
+            self.emit('ready')
         end
     end
     
     def request method, *args
-        puts "method=#{method.inspect}; args=#{args.inspect}"
+        scrub = @scrub.scrub(args)
+        @conn.write(JSON(
+            {
+                :method => method,
+                :links => [],
+            }.merge(@scrub.scrub args)
+        ))
     end
 end

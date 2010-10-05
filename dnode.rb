@@ -3,7 +3,7 @@ require 'dnode/conn'
 
 class DNode
     def initialize obj={}
-        @object = obj
+        @instance = obj
     end
     
     def from_args *args, &block
@@ -28,7 +28,25 @@ class DNode
             end
         end
         
-        Conn.new(params.merge :conn => conn.new)
+        socket = nil
+        write_queue = []
+        
+        conn.send(:define_method, 'write') do |msg|
+            puts "write: <#{msg}>"
+            if socket.nil? then
+                write_queue.push(msg)
+            else
+                socket.write(msg)
+            end
+        end
+        
+        klass.send(:define_method, 'on_connection') do |s|
+            socket = s
+            write_queue.each { |msg| socket.write(m) }
+            puts "got socket: #{socket}"
+        end
+        
+        Conn.new(params.merge :conn => conn.new, :instance => @instance)
         
         sock = klass.connect(params[:host], params[:port])
         event_loop = Rev::Loop.default
@@ -39,7 +57,7 @@ class DNode
     def listen *args, &block
         params = from_args(*args, &block)
         server = Rev::TCPServer.new(params[:host], params[:port]) do |conn|
-            Conn.new(params.merge :conn => conn)
+            Conn.new(params.merge :conn => conn, :instance => @instance)
         end
         event_loop = Rev::Loop.default
         server.attach(event_loop)
