@@ -1,4 +1,5 @@
 require 'dnode/walk'
+require 'dnode/jsobject'
 
 class Scrub
     def initialize
@@ -23,12 +24,16 @@ class Scrub
     end
     
     def unscrub req, &block
-        Walk.new(req['arguments']).walk do |node|
-            path = node.path.map(&:to_s)
-            pair = req['callbacks'].detect{ |_,p| p.map(&:to_s) == path }
-            unless pair.nil? then
-                id = pair.first
-                node.value = block.call(id)
+        args = Walk.new(req['arguments']).walk do |node|
+            if node.value.is_a? Hash and not node.value.is_a? JSObject then
+                node.update(node.value)
+            else
+                path = node.path.map(&:to_s)
+                pair = req['callbacks'].detect{ |_,p| p.map(&:to_s) == path }
+                unless pair.nil? then
+                    id = pair.first
+                    node.value = block.call(id)
+                end
             end
         end
     end

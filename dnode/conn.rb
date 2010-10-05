@@ -2,6 +2,7 @@ require 'eventmachine'
 require 'events'
 require 'json'
 require 'dnode/scrub'
+require 'dnode/jsobject'
 
 class Conn
     include Events::Emitter
@@ -31,8 +32,10 @@ class Conn
             @scrub.callbacks[id].call(*args)
         elsif req['method'] == 'methods' then
             @remote.update(args[0])
-            @block.call(*[ @remote, self ][ 0 .. @block.arity - 1 ])
-            self.emit('remote', @remote)
+            js = JSObject.new(@remote)
+            
+            @block.call(*[ js, self ][ 0 .. @block.arity - 1 ])
+            self.emit('remote', js)
             self.emit('ready')
         end
     end
