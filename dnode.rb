@@ -1,5 +1,6 @@
-require 'rev'
+require 'eventmachine'
 require 'dnode/conn'
+require 'json'
 
 class DNode
     def initialize obj={}
@@ -17,50 +18,29 @@ class DNode
     end
     private :from_args
     
+    def handle_conn c, conn
+        c.extend EM::P::LineText2
+        (class << c; self; end).send(:define_method, 'receive_line') do |line|
+            conn.handle(JSON(line))
+        end
+    end
+    private :handle_conn
+    
     def connect *args, &block
-        params = from_args(*args, &block)
-        
-        klass = Class.new(Rev::TCPSocket)
-        conn = Class.new
-        %w{ on_connect on_close on_read }.each do |method|
-            conn.send(:define_method, method) do |&block|
-                klass.send :define_method, method, block
-            end
-        end
-        
-        socket = nil
-        write_queue = []
-        
-        conn.send(:define_method, 'write') do |msg|
-            puts "write: <#{msg}>"
-            if socket.nil? then
-                write_queue.push(msg)
-            else
-                socket.write(msg)
-            end
-        end
-        
-        klass.send(:define_method, 'on_connection') do |s|
-            socket = s
-            write_queue.each { |msg| socket.write(m) }
-            puts "got socket: #{socket}"
-        end
-        
-        Conn.new(params.merge :conn => conn.new, :instance => @instance)
-        
-        sock = klass.connect(params[:host], params[:port])
-        event_loop = Rev::Loop.default
-        sock.attach(event_loop)
-        event_loop.run
+        params = from_args(*args, &block).merge(:instance => @instance)
+        EM.run do EM.connect(params[:host], params[:port]) do |c|
+            conn = Conn.new(params.merge :conn => c)
+            handle_conn(c, conn)
+        end end
     end
     
     def listen *args, &block
-        params = from_args(*args, &block)
-        server = Rev::TCPServer.new(params[:host], params[:port]) do |conn|
-            Conn.new(params.merge :conn => conn, :instance => @instance)
-        end
-        event_loop = Rev::Loop.default
-        server.attach(event_loop)
-        event_loop.run
+        params = from_args(*args, &block).merge(:instance => @instance)
+        conn = Conn.new(params)
+        
+        EM.run do EM.start_server(params[:host], params[:port]) do |c|
+            conn = Conn.new(params.merge :conn => c)
+            handle_conn(c, conn)
+        end end
     end
 end

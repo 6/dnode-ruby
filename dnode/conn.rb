@@ -1,49 +1,24 @@
-require 'rev'
+require 'eventmachine'
 require 'events'
 require 'json'
 require 'dnode/scrub'
 
-class Conn < Rev::TCPSocket
+class Conn
     include Events::Emitter
     
     def initialize params
         @block = params[:block] || lambda {}
         @instance = params[:instance] || {}
+        @conn = params[:conn]
         @scrub = Scrub.new
         @remote = {}
-        @sock = nil
         
-        buf = ''
-        this = self
-        
-        @conn = params[:conn]
-        @conn.on_connect {
-            this.emit('connect')
-            conn = self
-            
-            (class << this; self; end).send(:define_method, 'write') do |msg|
-                puts "msg=#{msg}"
-                conn.write(msg)
+        request('methods', [
+            if @instance.is_a? Proc
+                then @instance.call(*[@remote,this][0..@instance.arity-1])
+                else @instance
             end
-            
-            this.request('methods', [
-                if @instance.is_a? Proc
-                    then @instance.call(*[@remote,this][0..@instance.arity-1])
-                    else @instance
-                end
-            ])
-        }
-        @conn.on_close {}
-        @conn.on_read do |data|
-            # hopefully line-buffered already, but anyways
-            buf += data
-            while buf.match(/\n/)
-                buf = buf.sub(/^([^\n]+\n)/) do |line|
-                    this.handle(JSON(line))
-                    ''
-                end
-            end
-        end
+        ])
     end
     
     def handle req
@@ -66,7 +41,7 @@ class Conn < Rev::TCPSocket
     
     def request method, *args
         scrub = @scrub.scrub(args)
-        @conn.write(JSON(
+        @conn.send_data(JSON(
             {
                 :method => method,
                 :links => [],
