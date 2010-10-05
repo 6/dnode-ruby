@@ -5,7 +5,7 @@ class Walk
     end
     
     def walk &block
-        _walk(@object, block)
+        _walk(Marshal.load(Marshal.dump(@object)), block)
     end
     
     def _walk obj, cb
