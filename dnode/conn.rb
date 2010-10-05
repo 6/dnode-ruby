@@ -24,9 +24,9 @@ class Conn
     def handle req
         puts req.inspect
         
-        args = @scrub.unscrub(req) { |id|
+        args = @scrub.unscrub(req) do |id|
             lambda { |*argv| self.request(id, *argv) }
-        }
+        end
         
         if req['method'].is_a? Integer then
             id = req['method']
