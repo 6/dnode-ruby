@@ -25,7 +25,7 @@ class Scrub
     def unscrub req, &block
         Walk.new(req['arguments']).walk do |node|
             path = node.path.map(&:to_s)
-            pair = req['callbacks'].detect{ |_,p| p == path }
+            pair = req['callbacks'].detect{ |_,p| p.map(&:to_s) == path }
             unless pair.nil? then
                 id = pair.first
                 node.value = block.call(id)

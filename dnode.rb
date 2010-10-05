@@ -1,6 +1,7 @@
 require 'eventmachine'
 require 'dnode/conn'
 require 'json'
+require 'socket'
 
 class DNode
     def initialize obj={}
@@ -34,13 +35,16 @@ class DNode
         end end
     end
     
+    class Listener < EM::Connection
+    end
+    
     def listen *args, &block
         params = from_args(*args, &block).merge(:instance => @instance)
-        conn = Conn.new(params)
-        
-        EM.run do EM.start_server(params[:host], params[:port]) do |c|
-            conn = Conn.new(params.merge :conn => c)
-            handle_conn(c, conn)
-        end end
+        EM.run do
+            EM.start_server(params[:host], params[:port], Listener) do |c|
+                conn = Conn.new(params.merge :conn => c)
+                handle_conn(c, conn)
+            end
+        end
     end
 end

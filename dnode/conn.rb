@@ -13,12 +13,12 @@ class Conn
         @scrub = Scrub.new
         @remote = {}
         
-        request('methods', [
+        request('methods',
             if @instance.is_a? Proc
                 then @instance.call(*[@remote,this][0..@instance.arity-1])
                 else @instance
             end
-        ])
+        )
     end
     
     def handle req
