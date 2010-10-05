@@ -22,8 +22,6 @@ class Conn
     end
     
     def handle req
-        puts req.inspect
-        
         args = @scrub.unscrub(req) do |id|
             lambda { |*argv| self.request(id, *argv) }
         end
@@ -40,12 +38,17 @@ class Conn
     end
     
     def request method, *args
-        scrub = @scrub.scrub(args)
+        scrubbed = @scrub.scrub(args)
         @conn.send_data(JSON(
             {
-                :method => method,
+                :method => (
+                    if method.respond_to? :match and method.match(/^\d+$/)
+                        then method.to_i
+                        else method
+                    end
+                ),
                 :links => [],
-            }.merge(@scrub.scrub args)
-        ))
+            }.merge(scrubbed)
+        ) + "\n")
     end
 end

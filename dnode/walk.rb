@@ -4,8 +4,16 @@ class Walk
         @object = obj
     end
     
+    def clone obj
+        _walk(obj, proc do |node|
+            unless @object.is_a? Array or @object.is_a? Hash then
+                node.value = node.value.clone
+            end
+        end)
+    end
+    
     def walk &block
-        _walk(Marshal.load(Marshal.dump(@object)), block)
+        _walk(clone(@object), block)
     end
     
     def _walk obj, cb
