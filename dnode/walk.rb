@@ -22,7 +22,7 @@ class Walk
         value = node.value
         
         if value.is_a? Hash then
-            copy = {}
+            copy = value.class.new
             value.each do |key,v|
                 @path.push key
                 copy[key] = _walk(v, cb)
@@ -30,7 +30,7 @@ class Walk
             end
             return copy
         elsif value.is_a? Array then
-            copy = []
+            copy = value.class.new
             value.each_with_index do |v,i|
                 @path.push i
                 copy.push(_walk(v, cb))
@@ -58,10 +58,6 @@ class Node
     end
     
     attr_accessor :value
-    
-    def update value
-        @value = value
-    end
-    
+    alias :update :value=
     attr_reader :path
 end
