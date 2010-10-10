@@ -13,11 +13,10 @@ class Conn
         @conn = params[:conn]
         @scrub = Scrub.new
         @remote = {}
-        js = JSObject.deep(@remote)
         
         request('methods',
             if @instance.is_a? Proc
-                then @instance.call(*[js,this][0..@instance.arity-1])
+                then @instance.call(*[@remote,self][0..@instance.arity-1])
                 else @instance
             end
         )
@@ -30,10 +29,10 @@ class Conn
         
         if req['method'].is_a? Integer then
             id = req['method']
-            @scrub.callbacks[id].call(*JSObject.deep(args))
+            @scrub.callbacks[id].call(*JSObject.create(args))
         elsif req['method'] == 'methods' then
             @remote.update(args[0])
-            js = JSObject.deep(@remote)
+            js = JSObject.create(@remote)
             
             @block.call(*[ js, self ][ 0 .. @block.arity - 1 ])
             self.emit('remote', js)
