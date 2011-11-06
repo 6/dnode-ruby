@@ -21,4 +21,6 @@ Gem::Specification.new do |s|
     s.email = 'mail@substack.net'
     s.extra_rdoc_files = [ 'LICENSE' ]
     s.homepage = 'http://github.com/substack/dnode-ruby'
+    s.add_dependency 'events'
+    s.add_dependency 'eventmachine'
 end
