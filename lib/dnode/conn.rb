@@ -29,12 +29,24 @@ class Conn
         
         if req['method'].is_a? Integer then
             id = req['method']
-            @scrub.callbacks[id].call(*JSObject.create(args))
+            cb = @scrub.callbacks[id]
+            if cb.arity < 0 then
+                cb.call(*JSObject.create(args))
+            else
+                argv = *JSObject.create(args)
+                padding = argv.length.upto(cb.arity - 1).map{ nil }
+                argv = argv.concat(padding).take(cb.arity)
+                cb.call(*argv)
+            end
         elsif req['method'] == 'methods' then
             @remote.update(args[0])
             js = JSObject.create(@remote)
             
-            @block.call(*[ js, self ][ 0 .. @block.arity - 1 ])
+            if @block.arity === 0 then
+                @block.call
+            else
+                @block.call(*[ js, self ][ 0 .. @block.arity - 1 ])
+            end
             self.emit('remote', js)
             self.emit('ready')
         end

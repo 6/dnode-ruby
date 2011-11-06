@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name = 'dnode'
-    s.version = '0.0.1'
+    s.version = '0.0.2'
     s.summary = 'Asynchronous remote method calls with transparently wrapped callbacks'
     s.require_paths = [ 'lib' ]
     s.files = [
@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
         embedded in deeply nested structures.
     }
     s.authors = ['James Halliday']
-    s.date = '2010-11-12'
+    s.date = '2011-11-06'
     s.email = 'mail@substack.net'
     s.extra_rdoc_files = [ 'LICENSE' ]
     s.homepage = 'http://github.com/substack/dnode-ruby'
